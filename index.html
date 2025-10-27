@@ -15,155 +15,7 @@
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body {
-            background-color: #F7F3E8; /* Warm Neutral - Light beige background */
-            color: #3D3B30; /* Warm Neutral - Dark brown text */
-            font-family: "Inter", sans-serif;
-        }
-        
-        /* --- Hiệu ứng Gooey (Giọt nước) --- */
-        svg.gooey-filter {
-            position: absolute;
-            width: 0;
-            height: 0;
-        }
-
-        #gooey-background {
-            position: fixed;
-            inset: 0;
-            z-index: -10;
-            overflow: hidden;
-            background: #F7F3E8;
-            filter: url('#gooey-effect'); /* Áp dụng bộ lọc SVG */
-        }
-
-        .blob {
-            position: absolute;
-            border-radius: 50%;
-            opacity: 0.6;
-            animation: moveBlob 20s infinite ease-in-out;
-        }
-
-        .blob:nth-child(1) {
-            width: 250px; height: 250px;
-            top: 10vh; left: 10vw;
-            background-color: #FCD34D; /* amber-300 */
-        }
-        .blob:nth-child(2) {
-            width: 350px; height: 350px;
-            top: 50vh; left: 60vw;
-            background-color: #7DD3FC; /* sky-300 */
-            animation-duration: 25s;
-            animation-delay: -5s;
-        }
-        .blob:nth-child(3) {
-            width: 300px; height: 300px;
-            top: 60vh; left: 5vw;
-            background-color: #FDBA74; /* orange-300 */
-            animation-duration: 18s;
-            animation-delay: -10s;
-        }
-
-        @keyframes moveBlob {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            25% { transform: translate(30vw, 40vh) scale(1.2); }
-            50% { transform: translate(-20vw, 10vh) scale(0.8); }
-            75% { transform: translate(10vw, -30vh) scale(1.1); }
-        }
-        /* --- Hết Hiệu ứng Gooey --- */
-
-
-        header, nav {
-            background-color: rgba(255, 255, 255, 0.7); /* Thêm độ trong suốt */
-            backdrop-filter: blur(12px); /* Hiệu ứng kính mờ */
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(200, 200, 200, 0.2);
-        }
-
-        .chart-container {
-            position: relative;
-            width: 100%;
-            max-width: 900px;
-            margin-left: auto;
-            margin-right: auto;
-            height: 350px;
-            max-height: 400px;
-        }
-
-        .nav-link {
-            @apply px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-amber-100 transition-all duration-300;
-        }
-        .nav-link.active {
-            @apply bg-amber-700 text-white font-semibold shadow-md;
-        }
-        
-        .filter-btn {
-            @apply px-4 py-2 rounded-full text-sm font-medium border-2 border-amber-600 text-amber-700 hover:bg-amber-600 hover:text-white hover:shadow-lg hover:scale-105 transition-all duration-300;
-        }
-        .filter-btn.active {
-            @apply bg-amber-600 text-white shadow-md;
-        }
-        
-        /* --- Nâng cấp Thẻ Nội dung (Glassmorphism) --- */
-        .content-card {
-            background-color: rgba(255, 255, 255, 0.75); /* Kính mờ */
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            @apply p-6 rounded-2xl shadow-xl transition-all duration-300 ease-in-out flex flex-col border border-white/50;
-        }
-        
-        .content-card-body {
-            @apply flex-grow;
-        }
-        
-        .content-wrapper.dimmed .content-card {
-            @apply opacity-30 blur-sm;
-        }
-        
-        .content-wrapper.highlight .content-card {
-            @apply opacity-100 ring-4 ring-amber-500 ring-offset-2 scale-105;
-        }
-        
-        .content-card h3 {
-            @apply text-xl font-bold text-amber-900 mb-3; /* Bỏ border-bottom */
-        }
-        
-        .content-card ul {
-            @apply list-disc list-inside space-y-2 text-gray-800;
-        }
-        
-        .gemini-btn, .tts-btn {
-            @apply mt-5 px-4 py-2 rounded-lg text-sm font-semibold text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2;
-        }
-        
-        .gemini-btn {
-            @apply bg-gradient-to-r from-amber-600 to-amber-700;
-        }
-
-        .tts-btn {
-            @apply bg-gradient-to-r from-sky-600 to-sky-700 disabled:opacity-50 disabled:cursor-not-allowed;
-        }
-        
-        #gemini-modal.hidden {
-            display: none;
-        }
-        
-        #gemini-modal {
-            @apply fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm;
-        }
-        
-        .modal-content {
-            background-color: rgba(255, 255, 255, 0.9); /* Kính mờ cho Modal */
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            @apply p-6 rounded-2xl shadow-2xl max-w-2xl w-11/12 max-h-[80vh] overflow-y-auto border border-white/60;
-        }
-        
-        .loader {
-            @apply w-8 h-8 border-4 border-amber-200 border-t-amber-600 rounded-full animate-spin;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body class="antialiased">
 
@@ -182,8 +34,9 @@
         </defs>
     </svg>
 
-    <!-- Nền Gooey (Giọt nước) -->
+    <!-- Enhanced Water Drop Background (4 blobs for better effect) -->
     <div id="gooey-background">
+        <div class="blob"></div>
         <div class="blob"></div>
         <div class="blob"></div>
         <div class="blob"></div>
@@ -217,7 +70,7 @@
     <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-28">
 
         <!-- Filter Section -->
-        <section class="mb-10 p-5 bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg">
+        <section class="mb-10">
             <div class="flex flex-wrap items-center justify-center gap-3">
                 <span class="font-semibold text-gray-700">Lọc theo công ty:</span>
                 <button class="filter-btn active" data-filter="all">Tất cả</button>
@@ -233,7 +86,7 @@
             <p class="text-center text-gray-700 mb-6 max-w-3xl mx-auto">
                 Biểu đồ này tổng hợp các chiến lược cạnh tranh chính mà mỗi nền tảng sử dụng. Bạn có thể nhấp vào một thanh (ví dụ: thanh "Grab") để lọc nội dung bên dưới và xem chi tiết các chiến lược của công ty đó.
             </p>
-            <div class="chart-container p-4 bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg">
+            <div class="chart-container">
                 <canvas id="strategyMatrixChart"></canvas>
             </div>
         </section>
