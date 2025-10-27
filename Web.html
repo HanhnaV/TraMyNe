@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cạnh tranh trong Nền kinh tế số (với Gemini AI)</title>
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: Ứng dụng được thiết kế dạng SPA với 1 header và 1 thanh điều hướng cố định (sticky). Thanh điều hướng cho phép nhảy (scroll) đến 5 phần nội dung chính. Ngay bên dưới là 1 thanh lọc tương tác (filter) theo công ty (Grab, Shopee, TikTok) và 1 biểu đồ tổng quan. Phần nội dung chính trình bày 5 biểu hiện cạnh tranh, mỗi biểu hiện được chia thành 3 thẻ (Lý thuyết, Ví dụ, Liên hệ Mác-Lênin) nằm cạnh nhau trên desktop (dạng grid) để dễ so sánh. Tương tác cốt lõi: 1) Nhấp vào điều hướng để cuộn đến phần. 2) Nhấp vào bộ lọc (ví dụ: "Grab") sẽ làm nổi bật (highlight) tất cả các thẻ "Ví dụ" có liên quan đến Grab và làm mờ (dim) các thẻ không liên quan, đồng thời cập nhật các thẻ "Lý thuyết" và "Liên hệ" tương ứng. 3) Một biểu đồ thanh ngang xếp chồng tổng quan cho thấy các công ty sử dụng chiến lược nào. 4) Tích hợp Gemini: Nút "Giải thích sâu hơn" trong thẻ "Liên hệ Mác-Lênin" gọi API Gemini text-gen để phân tích. 5) Nút "Nghe" gọi API Gemini TTS để đọc kết quả. -->
+    <!-- Visualization & Content Choices:
+    1.  Overview Chart: Report Info -> Các công ty (Grab, Shopee, TikTok) và 5 chiến lược. Goal -> So sánh, Tổng quan. Viz -> Biểu đồ thanh ngang xếp chồng (Horizontal Stacked Bar Chart) bằng Chart.js. Interaction -> Nhấp vào một thanh (ví dụ: "Grab") sẽ kích hoạt bộ lọc cho công ty đó. Justification -> Cung cấp cái nhìn tổng quan ngay lập-tức về "ai đang làm gì".
+    2.  Content Sections (5): Report Info -> 5 biểu hiện cạnh tranh. Goal -> Tổ chức, So sánh. Viz/Presentation -> Bố cục lưới 3 cột (HTML/Tailwind) cho "Lý thuyết", "Ví dụ", "Liên hệ". Interaction -> Các thẻ này phản ứng với bộ lọc của công ty (highlight/dim) bằng JS. Justification -> Cấu trúc này trực quan hóa mối liên hệ giữa lý thuyết, thực tiễn và phân tích học thuật, là cốt lõi của báo cáo.
+    3.  Gemini Explain: Report Info -> Lý thuyết + Liên hệ M-L. Goal -> Phân tích, Giải thích. Viz -> Modal. Interaction -> Nút bấm. Justification -> Thêm chiều sâu phân tích AI.
+    4.  Gemini TTS: Report Info -> Văn bản do AI tạo. Goal -> Hỗ trợ tiếp cận, học tập. Viz -> Nút bấm + Audio. Interaction -> Nút bấm. Justification -> Cung cấp phương thức tiêu thụ nội dung thay thế.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #F7F3E8; /* Warm Neutral - Light beige background */
+            color: #3D3B30; /* Warm Neutral - Dark brown text */
+            font-family: "Inter", sans-serif;
+        }
+        
+        /* --- Hiệu ứng Gooey (Giọt nước) --- */
+        svg.gooey-filter {
+            position: absolute;
+            width: 0;
+            height: 0;
+        }
+
+        #gooey-background {
+            position: fixed;
+            inset: 0;
+            z-index: -10;
+            overflow: hidden;
+            background: #F7F3E8;
+            filter: url('#gooey-effect'); /* Áp dụng bộ lọc SVG */
+        }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.6;
+            animation: moveBlob 20s infinite ease-in-out;
+        }
+
+        .blob:nth-child(1) {
+            width: 250px; height: 250px;
+            top: 10vh; left: 10vw;
+            background-color: #FCD34D; /* amber-300 */
+        }
+        .blob:nth-child(2) {
+            width: 350px; height: 350px;
+            top: 50vh; left: 60vw;
+            background-color: #7DD3FC; /* sky-300 */
+            animation-duration: 25s;
+            animation-delay: -5s;
+        }
+        .blob:nth-child(3) {
+            width: 300px; height: 300px;
+            top: 60vh; left: 5vw;
+            background-color: #FDBA74; /* orange-300 */
+            animation-duration: 18s;
+            animation-delay: -10s;
+        }
+
+        @keyframes moveBlob {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(30vw, 40vh) scale(1.2); }
+            50% { transform: translate(-20vw, 10vh) scale(0.8); }
+            75% { transform: translate(10vw, -30vh) scale(1.1); }
+        }
+        /* --- Hết Hiệu ứng Gooey --- */
+
+
+        header, nav {
+            background-color: rgba(255, 255, 255, 0.7); /* Thêm độ trong suốt */
+            backdrop-filter: blur(12px); /* Hiệu ứng kính mờ */
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(200, 200, 200, 0.2);
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+
+        .nav-link {
+            @apply px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-amber-100 transition-all duration-300;
+        }
+        .nav-link.active {
+            @apply bg-amber-700 text-white font-semibold shadow-md;
+        }
+        
+        .filter-btn {
+            @apply px-4 py-2 rounded-full text-sm font-medium border-2 border-amber-600 text-amber-700 hover:bg-amber-600 hover:text-white hover:shadow-lg hover:scale-105 transition-all duration-300;
+        }
+        .filter-btn.active {
+            @apply bg-amber-600 text-white shadow-md;
+        }
+        
+        /* --- Nâng cấp Thẻ Nội dung (Glassmorphism) --- */
+        .content-card {
+            background-color: rgba(255, 255, 255, 0.75); /* Kính mờ */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            @apply p-6 rounded-2xl shadow-xl transition-all duration-300 ease-in-out flex flex-col border border-white/50;
+        }
+        
+        .content-card-body {
+            @apply flex-grow;
+        }
+        
+        .content-wrapper.dimmed .content-card {
+            @apply opacity-30 blur-sm;
+        }
+        
+        .content-wrapper.highlight .content-card {
+            @apply opacity-100 ring-4 ring-amber-500 ring-offset-2 scale-105;
+        }
+        
+        .content-card h3 {
+            @apply text-xl font-bold text-amber-900 mb-3; /* Bỏ border-bottom */
+        }
+        
+        .content-card ul {
+            @apply list-disc list-inside space-y-2 text-gray-800;
+        }
+        
+        .gemini-btn, .tts-btn {
+            @apply mt-5 px-4 py-2 rounded-lg text-sm font-semibold text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2;
+        }
+        
+        .gemini-btn {
+            @apply bg-gradient-to-r from-amber-600 to-amber-700;
+        }
+
+        .tts-btn {
+            @apply bg-gradient-to-r from-sky-600 to-sky-700 disabled:opacity-50 disabled:cursor-not-allowed;
+        }
+        
+        #gemini-modal.hidden {
+            display: none;
+        }
+        
+        #gemini-modal {
+            @apply fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm;
+        }
+        
+        .modal-content {
+            background-color: rgba(255, 255, 255, 0.9); /* Kính mờ cho Modal */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            @apply p-6 rounded-2xl shadow-2xl max-w-2xl w-11/12 max-h-[80vh] overflow-y-auto border border-white/60;
+        }
+        
+        .loader {
+            @apply w-8 h-8 border-4 border-amber-200 border-t-amber-600 rounded-full animate-spin;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Bộ lọc SVG cho hiệu ứng Gooey (Giọt nước) -->
+    <svg class="gooey-filter">
+        <defs>
+            <filter id="gooey-effect">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur" />
+                <feColorMatrix in="blur" mode="matrix" values="
+                    1 0 0 0 0
+                    0 1 0 0 0
+                    0 0 1 0 0
+                    0 0 0 18 -7" result="gooey" />
+                <feBlend in="SourceGraphic" in2="gooey" />
+            </filter>
+        </defs>
+    </svg>
+
+    <!-- Nền Gooey (Giọt nước) -->
+    <div id="gooey-background">
+        <div class="blob"></div>
+        <div class="blob"></div>
+        <div class="blob"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="sticky top-0 z-50 shadow-md">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <h1 class="text-3xl font-bold text-center text-amber-900">
+                Cạnh tranh trong Nền kinh tế số: Các Biểu hiện mới
+            </h1>
+            <p class="text-center text-gray-700 mt-1">Phân tích qua case study Grab, Shopee, và TikTok Shop (Tích hợp Gemini AI)</p>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav id="navbar" class="sticky top-[88px] z-40 shadow-sm py-3">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-wrap items-center justify-center gap-2">
+                <a href="#overview" class="nav-link active" data-section="overview">Tổng quan</a>
+                <a href="#network-effects" class="nav-link" data-section="network-effects">Hiệu ứng Mạng lưới</a>
+                <a href="#data-competition" class="nav-link" data-section="data-competition">Cạnh tranh Dữ liệu</a>
+                <a href="#cash-burning" class="nav-link" data-section="cash-burning">"Đốt tiền"</a>
+                <a href="#ecosystem" class="nav-link" data-section="ecosystem">Hệ sinh thái</a>
+                <a href="#shoppertainment" class="nav-link" data-section="shoppertainment">Shoppertainment</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-28">
+
+        <!-- Filter Section -->
+        <section class="mb-10 p-5 bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg">
+            <div class="flex flex-wrap items-center justify-center gap-3">
+                <span class="font-semibold text-gray-700">Lọc theo công ty:</span>
+                <button class="filter-btn active" data-filter="all">Tất cả</button>
+                <button class="filter-btn" data-filter="grab">Grab</button>
+                <button class="filter-btn" data-filter="shopee">Shopee</button>
+                <button class="filter-btn" data-filter="tiktok">TikTok Shop</button>
+            </div>
+        </section>
+
+        <!-- Overview Chart -->
+        <section id="overview" class="mb-12 pt-12 -mt-12">
+            <h2 class="text-3xl font-bold text-center text-amber-900 mb-6">Tổng quan: Ai dùng chiến lược gì?</h2>
+            <p class="text-center text-gray-700 mb-6 max-w-3xl mx-auto">
+                Biểu đồ này tổng hợp các chiến lược cạnh tranh chính mà mỗi nền tảng sử dụng. Bạn có thể nhấp vào một thanh (ví dụ: thanh "Grab") để lọc nội dung bên dưới và xem chi tiết các chiến lược của công ty đó.
+            </p>
+            <div class="chart-container p-4 bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg">
+                <canvas id="strategyMatrixChart"></canvas>
+            </div>
+        </section>
+
+        <!-- 1. Network Effects -->
+        <section id="network-effects" class="mb-12 pt-16 -mt-12">
+            <h2 class="text-3xl font-bold text-amber-900 mb-8">1. Hiệu ứng Mạng lưới</h2>
+            <div class="content-wrapper grid grid-cols-1 md:grid-cols-3 gap-6" data-topic="network-effects">
+                <div class="content-card" data-type="theory">
+                    <h3>Lý thuyết</h3>
+                    <div class="content-card-body">
+                        <p>Cạnh tranh không còn đơn thuần là giữa các công ty bán sản phẩm, mà là giữa các **nền tảng** (platform) nhằm thu hút cả hai phía: người dùng (mua) và nhà cung cấp (bán/dịch vụ).</p>
+                        <p class="mt-2">Giá trị của nền tảng tăng theo cấp số nhân khi có thêm người dùng (gọi là "hiệu ứng mạng lưới"). Nền tảng nào có nhiều người dùng hơn sẽ thu hút nhiều nhà cung cấp hơn, và ngược lại, tạo ra một vòng lặp tự củng cố.</p>
+                    </div>
+                </div>
+                <div class="content-card" data-company="shopee grab">
+                    <h3>Ví dụ thực tiễn</h3>
+                    <div class="content-card-body">
+                        <ul>
+                            <li><strong>Shopee:</strong> Tạo ra một "chợ" online. Càng nhiều người bán, Shopee càng có nhiều sản phẩm, giá rẻ, thu hút thêm người mua. Càng nhiều người mua, Shopee càng trở thành kênh bán hàng hấp dẫn, thu hút thêm người bán.</li>
+                            <li><strong>Grab:</strong> Không sở hữu xe nhưng thống trị thị trường. Họ thu hút nhiều tài xế (giảm thời gian chờ) và nhiều hành khách (tài xế có thu nhập). Hiệu ứng mạng lưới này khiến đối thủ nhỏ rất khó chen chân.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="content-card" data-type="analysis">
+                    <h3>Liên hệ Mác-Lênin</h3>
+                    <div class="content-card-body">
+                        <ul>
+                            <li>Biểu hiện của việc **tập trung tư bản**. Nền tảng hoạt động như một "tư bản" trung gian.</li>
+                            <li>Hiệu ứng mạng lưới nhanh chóng dẫn đến **độc quyền** ("chiến thắng lấy tất cả").</li>
+                            <li>Nền tảng trở thành một "tư liệu sản xuất" kiểu mới, kiểm soát phương thức trao đổi. Người bán/tài xế bị phụ thuộc và bị nền tảng "bóc lột" giá trị thặng dư qua phí, chiết khấu.</li>
+                        </ul>
+                    </div>
+                    <button class="gemini-btn" data-action="explain">✨ Giải thích sâu hơn</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Data Competition -->
+        <section id="data-competition" class="mb-12 pt-16 -mt-12">
+            <h2 class="text-3xl font-bold text-amber-900 mb-8">2. Cạnh tranh bằng Dữ liệu</h2>
+            <div class="content-wrapper grid grid-cols-1 md:grid-cols-3 gap-6" data-topic="data-competition">
+                <div class="content-card" data-type="theory">
+                    <h3>Lý thuyết</h3>
+                    <div class="content-card-body">
+                        <p>**Dữ liệu người dùng (data)** trở thành tài sản và vũ khí cạnh tranh quan trọng nhất. Các công ty thu thập, phân tích hành vi người dùng để tối ưu hóa sản phẩm, cá nhân hóa trải nghiệm, và nhắm mục tiêu quảng cáo chính xác.</p>
+                    </div>
+                </div>
+                <div class="content-card" data-company="tiktok shopee">
+                    <h3>Ví dụ thực tiễn</h3>
+                    <div class="content-card-body">
+                        <ul>
+                            <li><strong>TikTok Shop:</strong> Hiểu rõ bạn thích xem gì (thuật toán), từ đó dự đoán bạn *muốn mua gì* và hiển thị sản phẩm trực tiếp trên video. Khả năng "biến người xem thành người mua" vượt trội nhờ dữ liệu hành vi.</li>
+                            <li><strong>Shopee:</strong> Theo dõi từng cú click, sản phẩm xem... để đưa ra gợi ý "Sản phẩm tương tự", "Có thể bạn cũng thích". Dữ liệu này cũng được bán cho nhà quảng cáo (Shopee Ads).</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="content-card" data-type="analysis">
+                    <h3>Liên hệ Mác-Lênin</h3>
+                    <div class="content-card-body">
+                        <ul>
+                            <li>Nếu tư bản truyền thống có tư liệu sản xuất là nhà máy, thì trong kinh tế số, **dữ liệu chính là "tư liệu sản xuất"** quan trọng.</li>
+                            <li>Việc thu thập dữ liệu là hình thức "bóc lột" mới. Người dùng cung cấp "lao động" (tạo ra dữ liệu) mà không được trả công, trong khi nền tảng biến nó thành tư bản và lợi nhuận. (Khái niệm "Chủ nghĩa tư bản giám sát").</li>
+                        </ul>
+                    </div>
+                    <button class="gemini-btn" data-action="explain">✨ Giải thích sâu hơn</button>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 3. Cash Burning -->
+        <section id="cash-burning" class="mb-12 pt-16 -mt-12">
+            <h2 class="text-3xl font-bold text-amber-900 mb-8">3. Cạnh tranh "Đốt tiền"</h2>
+            <div class="content-wrapper grid grid-cols-1 md:grid-cols-3 gap-6" data-topic="cash-burning">
+                <div class="content-card" data-type="theory">
+                    <h3>Lý thuyết</h3>
+                    <div class="content-card-body">
+                        <p>Các công ty nền tảng sử dụng nguồn vốn đầu tư mạo hiểm khổng lồ để "đốt tiền" (cash burning) – tung ra khuyến mãi, trợ giá, miễn phí vận chuyển... Họ chấp nhận lỗ nặng trong thời gian dài để giành thị phần và tiêu diệt đối thủ.</p>
+                    </div>
+                </div>
+                <div class="content-card" data-company="grab shopee">
+                    <h3>Ví dụ thực tiễn</h3>
+                    <div class="content-card-body">
+                        <ul>
+                            <li><strong>Grab vs. Uber/Gojek:</strong> Cuộc chiến "đốt tiền" trợ giá cho cả tài xế và khách hàng. Ai cạn vốn trước, người đó thua.</li>
+                            <li><strong>Shopee vs. Lazada/Tiki:</strong> Cuộc chiến "voucher" và "freeship" không hồi kết. Shopee có nguồn vốn dồi dào, sẵn sàng chi hàng nghìn tỷ đồng để trợ giá, thu hút người dùng từ đối thủ.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="content-card" data-type="analysis">
+                    <h3>Liên hệ Mác-Lênin</h3>
+                    <div class="content-card-body">
+                        <ul>
+                            <li>Biểu hiện của quy luật **cạnh tranh gay gắt dẫn đến tích tụ và tập trung tư bản**.</li>
+                            <li>Hình thức "dùng tư bản đè bẹp tư bản". Các "tư bản" lớn rót vốn để một công ty **tiêu diệt các đối thủ cạnh tranh**.</li>
+                            <li>Khi đã độc quyền, công ty sẽ ngừng "đốt tiền" và bắt đầu tăng giá/phí để thu lợi nhuận độc quyền (ví dụ: cước Grab tăng, voucher Shopee khó lấy hơn).</li>
+                        </ul>
+                    </div>
+                    <button class="gemini-btn" data-action="explain">✨ Giải thích sâu hơn</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. Ecosystem -->
+        <section id="ecosystem" class="mb-12 pt-16 -mt-12">
+            <h2 class="text-3xl font-bold text-amber-900 mb-8">4. Cạnh tranh Hệ sinh thái</h2>
+            <div class="content-wrapper grid grid-cols-1 md:grid-cols-3 gap-6" data-topic="ecosystem">
+                <div class="content-card" data-type="theory">
+                    <h3>Lý thuyết</h3>
+                    <div class="content-card-body">
+                        <p>Cạnh tranh không chỉ ở một dịch vụ, mà là xây dựng một "hệ sinh thái" khép kín, nơi người dùng có thể sử dụng mọi dịch vụ trong cùng một "Siêu ứng dụng" (Super-app). Mục tiêu là "khóa" người dùng (user lock-in) trong hệ sinh thái của mình.</p>
+                    </div>
+                </div>
+                <div class="content-card" data-company="grab shopee">
+                    <h3>Ví dụ thực tiễn</h3>
+                    <div class="content-card-body">
+                        <ul>
+                            <li><strong>Grab:</strong> Từ gọi xe, phát triển thành siêu ứng dụng với: GrabFood (giao đồ ăn), GrabMart (đi chợ), GrabExpress (giao hàng), và Moca/GrabPay (thanh toán).</li>
+                            <li><strong>Shopee:</strong> Cũng đang xây dựng hệ sinh thái: Shopee (mua sắm), ShopeeFood/Now (giao đồ ăn), ShopeePay (ví điện tử).</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="content-card" data-type="analysis">
+                    <h3>Liên hệ Mác-Lênin</h3>
+                    <div class="content-card-body">
+                        <ul>
+                            <li>Một hình thức **độc quyền kiểu mới**. Thay vì độc quyền một sản phẩm, các tập đoàn này độc quyền *toàn bộ chu trình tiêu dùng* của khách hàng.</li>
+                            <li>Bằng cách kiểm soát nhiều khâu, họ tạo ra rào cản gia nhập thị trường khổng lồ mà các công ty mới không thể vượt qua.</li>
+                        </ul>
+                    </div>
+                    <button class="gemini-btn" data-action="explain">✨ Giải thích sâu hơn</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. Shoppertainment -->
+        <section id="shoppertainment" class="mb-12 pt-16 -mt-12">
+            <h2 class="text-3xl font-bold text-amber-900 mb-8">5. Shoppertainment</h2>
+            <div class="content-wrapper grid grid-cols-1 md:grid-cols-3 gap-6" data-topic="shoppertainment">
+                <div class="content-card" data-type="theory">
+                    <h3>Lý thuyết</h3>
+                    <div class="content-card-body">
+                        <p>Hình thức mới nhất, đặc biệt với TikTok. Cạnh tranh không chỉ là khi người dùng *có nhu cầu* mua hàng (như lên Shopee tìm), mà là *tạo ra nhu cầu* ngay trong lúc họ đang giải trí.</p>
+                    </div>
+                </div>
+                <div class="content-card" data-company="tiktok">
+                    <h3>Ví dụ thực tiễn</h3>
+                    <div class="content-card-body">
+                        <ul>
+                            <li><strong>TikTok Shop:</strong> Bạn đang lướt xem video giải trí, thấy một KOC/KOL review sản phẩm hấp dẫn, và bạn nhấn nút mua ngay lập tức. Quyết định mua hàng diễn ra tức thời, dựa trên cảm xúc, thay vì so sánh giá cả.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="content-card" data-type="analysis">
+                    <h3>Liên hệ Mác-Lênin</h3>
+                    <div class="content-card-body">
+                        <ul>
+                            <li>Liên quan đến việc chủ nghĩa tư bản luôn tìm cách **mở rộng thị trường và tạo ra các "nhu cầu giả"**.</li>
+                            <li>Làm **tăng tốc độ lưu thông của tư bản (vòng quay tư bản)**. Hàng hóa được bán nhanh hơn, tối đa hóa lợi nhuận.</li>
+                            <li>Làm mờ ranh giới giữa "thời gian giải trí" và "thời gian tiêu dùng", biến mọi khoảnh khắc thành cơ hội để tư bản khai thác lợi nhuận.</li>
+                        </ul>
+                    </div>
+                    <button class="gemini-btn" data-action="explain">✨ Giải thích sâu hơn</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Gemini AI Modal -->
+    <div id="gemini-modal" class="hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-amber-800">✨ Giải thích sâu từ AI</h3>
+                <button id="close-modal-btn" class="text-3xl font-bold text-gray-500 hover:text-gray-800 transition-colors">&times;</button>
+            </div>
+            <div id="modal-body" class="prose prose-base max-w-none text-gray-800">
+                <div class="flex justify-center items-center h-32">
+                    <div class="loader"></div>
+                </div>
+            </div>
+            <div class="mt-4 flex gap-4">
+                <button id="tts-btn" class="tts-btn" disabled>
+                    <span class="tts-icon">🔊</span>
+                    <span class="tts-text">Nghe giải thích</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center py-6 mt-8">
+        <p class="text-sm text-gray-600">Một ứng dụng web tương tác dựa trên báo cáo nghiên cứu.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const chartData = {
+                labels: [
+                    'Hiệu ứng Mạng lưới', 
+                    'Cạnh tranh Dữ liệu', 
+                    'Cạnh tranh "Đốt tiền"', 
+                    'Cạnh tranh Hệ sinh thái', 
+                    'Shoppertainment'
+                ],
+                datasets: [
+                    {
+                        label: 'Grab',
+                        data: [1, 0, 1, 1, 0],
+                        backgroundColor: 'rgba(2, 132, 199, 0.7)', // Sky-700
+                        stack: 'Stack 0',
+                    },
+                    {
+                        label: 'Shopee',
+                        data: [1, 1, 1, 1, 0],
+                        backgroundColor: 'rgba(234, 88, 12, 0.7)', // Orange-600
+                        stack: 'Stack 0',
+                    },
+                    {
+                        label: 'TikTok Shop',
+                        data: [0, 1, 0, 0, 1],
+                        backgroundColor: 'rgba(30, 41, 59, 0.7)', // Slate-800
+                        stack: 'Stack 0',
+                    }
+                ]
+            };
+            
+            Chart.defaults.font.family = "'Inter', sans-serif";
+            Chart.defaults.font.weight = "500";
+            Chart.defaults.color = "#3D3B30";
+
+            const strategyMatrixCtx = document.getElementById('strategyMatrixChart').getContext('2d');
+            const strategyMatrixChart = new Chart(strategyMatrixCtx, {
+                type: 'bar',
+                data: chartData,
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: true,
+                            display: false,
+                        },
+                        y: {
+                            stacked: true,
+                            ticks: {
+                                font: {
+                                    size: 14,
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    size: 14,
+                                },
+                                usePointStyle: true,
+                                boxWidth: 10,
+                            }
+                        },
+                        tooltip: {
+                            enabled: true,
+                            backgroundColor: 'rgba(0,0,0,0.8)',
+                            titleFont: { size: 16, weight: 'bold' },
+                            bodyFont: { size: 14 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                title: function(tooltipItems) {
+                                    const item = tooltipItems[0];
+                                    let label = item.chart.data.labels[item.dataIndex];
+                                    if (Array.isArray(label)) {
+                                      return label.join(' ');
+                                    } else {
+                                      return label;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    onClick: (evt) => {
+                        const points = strategyMatrixChart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+                        if (points.length) {
+                            const firstPoint = points[0];
+                            const label = strategyMatrixChart.data.datasets[firstPoint.datasetIndex].label;
+                            if (label) {
+                                filterContent(label.toLowerCase().replace(' shop', ''));
+                            }
+                        }
+                    }
+                }
+            });
+
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            const contentWrappers = document.querySelectorAll('.content-wrapper');
+
+            function filterContent(filterValue) {
+                filterButtons.forEach(btn => {
+                    if (btn.dataset.filter === filterValue) {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
+                });
+
+                contentWrappers.forEach(wrapper => {
+                    const exampleCard = wrapper.querySelector('[data-company]');
+                    const companies = exampleCard ? exampleCard.dataset.company : "";
+
+                    if (filterValue === 'all') {
+                        wrapper.classList.remove('dimmed');
+                        wrapper.classList.remove('highlight');
+                    } else if (companies.includes(filterValue)) {
+                        wrapper.classList.remove('dimmed');
+                        wrapper.classList.add('highlight');
+                    } else {
+                        wrapper.classList.add('dimmed');
+                        wrapper.classList.remove('highlight');
+                    }
+                });
+            }
+
+            filterButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const filterValue = button.dataset.filter;
+                    filterContent(filterValue);
+                });
+            });
+
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('section');
+            const navBar = document.getElementById('navbar');
+
+            const observerOptions = {
+                rootMargin: `-${navBar.offsetHeight + 50}px 0px 0px 0px`,
+                threshold: 0.1
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        navLinks.forEach(link => {
+                            link.classList.toggle('active', link.getAttribute('href') === `#${entry.target.id}`);
+                        });
+                    }
+                });
+            }, observerOptions);
+
+            sections.forEach(section => {
+                observer.observe(section);
+            });
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const targetId = link.getAttribute('href');
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        const topOffset = targetElement.offsetTop - navBar.offsetHeight - 20;
+                        window.scrollTo({
+                            top: topOffset,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+
+            // --- Gemini AI Feature Logic ---
+
+            const modal = document.getElementById('gemini-modal');
+            const modalBody = document.getElementById('modal-body');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            const explainBtns = document.querySelectorAll('.gemini-btn[data-action="explain"]');
+            const ttsBtn = document.getElementById('tts-btn');
+            
+            let currentGeneratedText = "";
+            let currentAudioPlayer = null;
+            let isAudioLoading = false;
+
+            const apiKey = ""; // API key sẽ được cung cấp trong môi trường thực thi
+
+            function showLoader() {
+                modalBody.innerHTML = `<div class="flex justify-center items-center h-32"><div class="loader"></div></div>`;
+                modal.classList.remove('hidden');
+                ttsBtn.disabled = true;
+                currentGeneratedText = "";
+            }
+
+            function showModalContent(htmlContent) {
+                modalBody.innerHTML = htmlContent;
+                modal.classList.remove('hidden');
+            }
+
+            function closeModal() {
+                modal.classList.add('hidden');
+                if (currentAudioPlayer) {
+                    currentAudioPlayer.pause();
+                    currentAudioPlayer = null;
+                }
+                resetTTSButton();
+            }
+
+            closeModalBtn.addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+
+            explainBtns.forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const wrapper = btn.closest('.content-wrapper');
+                    const sectionTitle = wrapper.parentElement.querySelector('h2').textContent.trim();
+                    const theoryText = wrapper.querySelector('[data-type="theory"] .content-card-body').textContent.trim();
+                    const analysisText = wrapper.querySelector('[data-type="analysis"] .content-card-body').textContent.trim();
+
+                    showLoader();
+
+                    const systemPrompt = `Bạn là một trợ lý học thuật chuyên về kinh tế chính trị Mác-Lênin và kinh tế số. Nhiệm vụ của bạn là giải thích các khái niệm phức tạp một cách đơn giản, rõ ràng cho sinh viên, bằng tiếng Việt.`;
+                    const userQuery = `Dựa trên bối cảnh sau:
+                    Chủ đề: "${sectionTitle}"
+                    Lý thuyết: "${theoryText}"
+                    Liên hệ Mác-Lênin: "${analysisText}"
+
+                    Hãy giải thích sâu hơn về mối liên hệ Mác-Lênin này. Làm rõ tại sao biểu hiện cạnh tranh trong kinh tế số này lại là một sự tiếp nối hoặc biểu hiện mới của các quy luật cạnh tranh và độc quyền mà Mác và Lênin đã phân tích. Cung cấp câu trả lời dưới dạng các gạch đầu dòng súc tích, dễ hiểu.`;
+
+                    try {
+                        const result = await callGeminiAPI(systemPrompt, userQuery);
+                        currentGeneratedText = result.text; // Lưu văn bản thô
+                        const formattedText = result.text.replace(/\* /g, '<li class="ml-4">').replace(/\n/g, '<br>').replace(/<br><li/g, '<li');
+                        showModalContent(`<ul class="list-disc space-y-2">${formattedText}</ul>`);
+                        ttsBtn.disabled = false; // Kích hoạt nút TTS
+                    } catch (error) {
+                        showModalContent(`<p class="text-red-600">Đã xảy ra lỗi khi gọi AI. Vui lòng thử lại sau.</p><p class="text-sm text-gray-500">${error.message}</p>`);
+                    }
+                });
+            });
+
+            async function callGeminiAPI(systemPrompt, userQuery, retries = 3, delay = 1000) {
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: {
+                        parts: [{ text: systemPrompt }]
+                    },
+                };
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 429 && retries > 0) {
+                            await new Promise(res => setTimeout(res, delay));
+                            return callGeminiAPI(systemPrompt, userQuery, retries - 1, delay * 2);
+                        }
+                        throw new Error(`API error: ${response.statusText} (status: ${response.status})`);
+                    }
+
+                    const result = await response.json();
+                    const candidate = result.candidates?.[0];
+
+                    if (candidate && candidate.content?.parts?.[0]?.text) {
+                        return { text: candidate.content.parts[0].text };
+                    } else {
+                        throw new Error("Không nhận được nội dung hợp lệ từ AI.");
+                    }
+                } catch (error) {
+                    console.error("Lỗi gọi Gemini API:", error);
+                    throw error;
+                }
+            }
+
+            // --- Gemini TTS Feature Logic ---
+            
+            ttsBtn.addEventListener('click', () => {
+                if (currentGeneratedText && !isAudioLoading) {
+                    if (currentAudioPlayer) {
+                        currentAudioPlayer.pause();
+                        currentAudioPlayer = null;
+                        resetTTSButton();
+                    } else {
+                        callGeminiTTS(currentGeneratedText);
+                    }
+                }
+            });
+
+            function resetTTSButton(isLoading = false) {
+                const icon = ttsBtn.querySelector('.tts-icon');
+                const text = ttsBtn.querySelector('.tts-text');
+                isAudioLoading = isLoading;
+                
+                if (isLoading) {
+                    icon.innerHTML = `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>`;
+                    text.textContent = "Đang tải âm thanh...";
+                    ttsBtn.disabled = true;
+                } else {
+                    icon.textContent = "🔊";
+                    text.textContent = "Nghe giải thích";
+                    ttsBtn.disabled = false;
+                }
+            }
+            
+            function setTTSButtonPlaying() {
+                const icon = ttsBtn.querySelector('.tts-icon');
+                const text = ttsBtn.querySelector('.tts-text');
+                icon.textContent = "❚❚";
+                text.textContent = "Dừng phát";
+                ttsBtn.disabled = false;
+            }
+
+            async function callGeminiTTS(textToSpeak, retries = 3, delay = 1000) {
+                if (isAudioLoading) return;
+                resetTTSButton(true);
+
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+
+                const payload = {
+                    contents: [{
+                        parts: [{ text: `Phát âm bằng giọng nói tiếng Việt chuẩn, rõ ràng, truyền cảm: ${textToSpeak}` }]
+                    }],
+                    generationConfig: {
+                        responseModalities: ["AUDIO"],
+                        speechConfig: {
+                            voiceConfig: {
+                                prebuiltVoiceConfig: { voiceName: "Kore" } 
+                            }
+                        }
+                    },
+                    model: "gemini-2.5-flash-preview-tts"
+                };
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 429 && retries > 0) {
+                            await new Promise(res => setTimeout(res, delay));
+                            return callGeminiTTS(textToSpeak, retries - 1, delay * 2);
+                        }
+                        throw new Error(`TTS API error: ${response.statusText} (status: ${response.status})`);
+                    }
+
+                    const result = await response.json();
+                    const part = result?.candidates?.[0]?.content?.parts?.[0];
+                    const audioData = part?.inlineData?.data;
+                    const mimeType = part?.inlineData?.mimeType;
+
+                    if (audioData && mimeType && mimeType.startsWith("audio/")) {
+                        const sampleRate = parseInt(mimeType.match(/rate=(\d+)/)?.[1] || "16000", 10);
+                        const pcmData = base64ToArrayBuffer(audioData);
+                        const pcm16 = new Int16Array(pcmData);
+                        const wavBlob = pcmToWav(pcm16, sampleRate);
+                        const audioUrl = URL.createObjectURL(wavBlob);
+                        
+                        currentAudioPlayer = new Audio(audioUrl);
+                        currentAudioPlayer.play();
+                        setTTSButtonPlaying();
+                        
+                        currentAudioPlayer.onended = () => {
+                            currentAudioPlayer = null;
+                            resetTTSButton();
+                        };
+
+                    } else {
+                        throw new Error("Không nhận được dữ liệu âm thanh hợp lệ.");
+                    }
+                } catch (error) {
+                    console.error("Lỗi gọi Gemini TTS API:", error);
+                    resetTTSButton();
+                    showModalContent(modalBody.innerHTML + `<p class="text-red-600 text-sm mt-2">Lỗi phát âm thanh: ${error.message}</p>`);
+                }
+            }
+            
+            function base64ToArrayBuffer(base64) {
+                const binaryString = window.atob(base64);
+                const len = binaryString.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                return bytes.buffer;
+            }
+
+            function pcmToWav(pcmData, sampleRate) {
+                const numChannels = 1;
+                const bitsPerSample = 16;
+                const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+                const blockAlign = numChannels * (bitsPerSample / 8);
+                const dataSize = pcmData.length * (bitsPerSample / 8);
+                const fileSize = 44 + dataSize;
+                
+                const buffer = new ArrayBuffer(fileSize);
+                const view = new DataView(buffer);
+                
+                function writeString(view, offset, string) {
+                    for (let i = 0; i < string.length; i++) {
+                        view.setUint8(offset + i, string.charCodeAt(i));
+                    }
+                }
+                
+                writeString(view, 0, 'RIFF');
+                view.setUint32(4, fileSize - 8, true);
+                writeString(view, 8, 'WAVE');
+                writeString(view, 12, 'fmt ');
+                view.setUint32(16, 16, true);
+                view.setUint16(20, 1, true);
+                view.setUint16(22, numChannels, true);
+                view.setUint32(24, sampleRate, true);
+                view.setUint32(28, byteRate, true);
+                view.setUint16(32, blockAlign, true);
+                view.setUint16(34, bitsPerSample, true);
+                writeString(view, 36, 'data');
+                view.setUint32(40, dataSize, true);
+                
+                for (let i = 0; i < pcmData.length; i++) {
+                    view.setInt16(44 + i * 2, pcmData[i], true);
+                }
+                
+                return new Blob([view], { type: 'audio/wav' });
+            }
+            
+        });
+    </script>
+</body>
+</html>
+
